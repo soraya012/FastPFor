@@ -10,14 +10,15 @@
 
 #include "common.h"
 #include "codecs.h"
-#include "bitpacking.h"
+#include "usimdbitpacking.h"
 #include "util.h"
 
 namespace FastPFor {
 
 /**
  * This implements as best as possible the PFor scheme
- * from  Zukowski et al., Super-Scalar RAM-CPU Cache Compression.
+ * from  Zukowski et al., Super-Scalar RAM-CPU Cache Compression
+ * with SIMD acceleration.
  *
  *  Implemented by D. Lemire
  *
@@ -37,7 +38,7 @@ namespace FastPFor {
  *     paper, we consider a consecutive sample of up to 64K samples.
  *
  */
-class SIMDPFOR : public IntegerCODEC {
+class SIMDPFor: public IntegerCODEC {
 public:
     enum {
         BlockSizeInUnitsOfPackSize = 4,
@@ -50,7 +51,7 @@ public:
     std::vector<uint32_t> miss;
     typedef uint32_t DATATYPE;// this is so that our code looks more like the original paper
 
-    SIMDPFOR () :
+    SIMDPFor() :
         codedcopy(BlockSize), miss(BlockSize) {
     }
     // for delta coding, we don't use a base.
@@ -118,7 +119,7 @@ public:
 
         }
         if (exceptcounter == 0) {
-            packblockupsimd(in, outputbegin, b);
+            packblock(in, outputbegin, b);
             return BlockSize;
         }
         codedcopy.assign(in,in+BlockSize);
@@ -149,38 +150,27 @@ public:
                 prev = cur;
             }
         }
-        packblockupsimd(&codedcopy[0], outputbegin, b);
+        packblock(&codedcopy[0], outputbegin, b);
         return firstexcept;
     }
 
-static uint32_t * packblockupsimd(const uint32_t * source, uint32_t * out,
-            const uint32_t bit) {
-       SIMD_fastpack_32(source, reinterpret_cast<__m128i *>(out), bit);
-       out += 4 * bit;
-       return out;
-    }
-
-    static const uint32_t * unpackblocksimd(const uint32_t * source, uint32_t * out,
-            const uint32_t bit) {
-        SIMD_fastunpack_32(reinterpret_cast<const __m128i *>(source), out, bit);
-        source += 4*bit;
-        return source;
-    }
-   /* void packblock(const uint32_t * source, uint32_t * out, const uint32_t bit) {
-        for (uint32_t j = 0; j != BlockSize; j += PACKSIZE) {
+    void packblock(const uint32_t * source, uint32_t * out, const uint32_t bit) {
+        usimdpack(source,reinterpret_cast<__m128i *>(out), bit);
+        /*for (uint32_t j = 0; j != BlockSize; j += PACKSIZE) {
             fastpack(source + j, out, bit);
             out += bit;
-        }
+        }*/
     }
 
     void unpackblock(const uint32_t * source, uint32_t * out,
             const uint32_t bit) {
-        for (uint32_t j = 0; j != BlockSize; j += PACKSIZE) {
+        usimdunpack(reinterpret_cast<const __m128i *>(source),out, bit);
+        /*for (uint32_t j = 0; j != BlockSize; j += PACKSIZE) {
             fastunpack(source, out + j, bit);
             source += bit;
-        }
+        }*/
     }
-*/
+
     void encodeArray(const uint32_t *in, const size_t len, uint32_t *out,
             size_t &nvalue) {
         *out++ = static_cast<uint32_t>(len);
@@ -303,7 +293,7 @@ static uint32_t * packblockupsimd(const uint32_t * source, uint32_t * out,
             const DATATYPE *__restrict__ & i, // i points to value of the first exception
             const DATATYPE * __restrict__ end_exception, size_t next_exception // points to the position of the first exception
             ) {
-        unpackblocksimd(inputbegin, reinterpret_cast<uint32_t *> (outputbegin), b); /* bit-unpack the values */
+        unpackblock(inputbegin, reinterpret_cast<uint32_t *> (outputbegin), b); /* bit-unpack the values */
          for (size_t cur = next_exception; i != end_exception; cur
                 = next_exception) {
             next_exception = cur + static_cast<size_t> (outputbegin[cur]) + 1;
@@ -313,7 +303,7 @@ static uint32_t * packblockupsimd(const uint32_t * source, uint32_t * out,
 
     virtual std::string name() const {
         std::ostringstream convert;
-        convert << "PFor";
+        convert << "SIMDPFor";
         return convert.str();
     }
 

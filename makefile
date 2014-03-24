@@ -11,8 +11,7 @@ else
     CXXFLAGS = -std=c++11 -O3 -Wall -xSSSE3 -DNDEBUG=1 -ggdb
 endif
 else 
-# replace the CXX variable with a path to a C++11 compatible compiler.
-CXX ?= g++-4.7
+
 
 # todo: allow custom architectures , e.g., -march=nocona -march=corei7
 CXXFLAGSEXTRA = -mssse3 # mssse3 necessary for varintg8iu and msse4.1 necessary for horizontal bit packing
@@ -25,7 +24,7 @@ endif
 #-ggdb
 endif
 
-HEADERS = ./headers/simdfastpfor.h ./headers/simdbinarypacking.h ./headers/bitpackinghelpers.h ./headers/common.h ./headers/memutil.h ./headers/pfor.h ./headers/pfor2008.h ./headers/bitpackingunaligned.h ./headers/bitpackingaligned.h ./headers/blockpacking.h  ./headers/codecfactory.h ./headers/packingvectors.h ./headers/compositecodec.h ./headers/cpubenchmark.h  ./headers/maropuparser.h ./headers/bitpacking.h  ./headers/util.h ./headers/simple9.h ./headers/simple8b.h ./headers/simple16.h ./headers/optpfor.h ./headers/newpfor.h ./headers/vsencoding.h ./headers/mersenne.h  ./headers/ztimer.h ./headers/codecs.h ./headers/synthetic.h ./headers/fastpfor.h ./headers/variablebyte.h ./headers/stringutil.h ./headers/entropy.h ./headers/VarIntG8IU.h ./headers/deltautil.h 
+HEADERS = ./headers/simdpfor.h ./headers/simdfastpfor.h ./headers/simdbinarypacking.h ./headers/bitpackinghelpers.h ./headers/common.h ./headers/memutil.h ./headers/pfor.h ./headers/pfor2008.h ./headers/bitpackingunaligned.h ./headers/bitpackingaligned.h ./headers/blockpacking.h  ./headers/codecfactory.h ./headers/packingvectors.h ./headers/compositecodec.h ./headers/cpubenchmark.h  ./headers/maropuparser.h ./headers/bitpacking.h  ./headers/util.h ./headers/simple9.h ./headers/simple8b.h ./headers/simple16.h ./headers/optpfor.h ./headers/newpfor.h ./headers/vsencoding.h ./headers/mersenne.h  ./headers/ztimer.h ./headers/codecs.h ./headers/synthetic.h ./headers/fastpfor.h ./headers/variablebyte.h ./headers/stringutil.h ./headers/entropy.h ./headers/VarIntG8IU.h ./headers/deltautil.h 
 
 all: unit codecs inmemorybenchmark  
 
@@ -45,7 +44,7 @@ GCCPARAMS=
 ./headers/common.h.gch: ./headers/common.h 
 	$(CXX) $(CXXFLAGS) -x c++-header  -c ./headers/common.h -Iheaders
 
-COMMONBINARIES= bitpacking.o bitpackingaligned.o bitpackingunaligned.o simdbitpacking.o
+COMMONBINARIES= bitpacking.o bitpackingaligned.o bitpackingunaligned.o simdbitpacking.o  simdunalignedbitpacking.o
 
 bitpacking.o: ./headers/bitpacking.h ./src/bitpacking.cpp
 	$(CXX) $(CXXFLAGS) -c ./src/bitpacking.cpp -Iheaders
@@ -58,6 +57,9 @@ bitpackingaligned.o: ./headers/bitpacking.h ./src/bitpackingaligned.cpp
 
 simdbitpacking.o: ./headers/common.h ./headers/simdbitpacking.h ./src/simdbitpacking.cpp
 	$(CXX) $(CXXFLAGS) -c ./src/simdbitpacking.cpp -Iheaders
+
+simdunalignedbitpacking.o: ./headers/common.h ./headers/usimdbitpacking.h ./src/simdunalignedbitpacking.cpp
+	$(CXX) $(CXXFLAGS) -c ./src/simdunalignedbitpacking.cpp -Iheaders
 
 horizontalbitpacking.o: ./headers/common.h ./headers/horizontalbitpacking.h ./src/horizontalbitpacking.cpp
 	$(CXX) $(CXXFLAGS) -msse4.1 -c ./src/horizontalbitpacking.cpp -Iheaders
